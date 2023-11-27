@@ -1,0 +1,54 @@
+- name: Create Teleport group
+  become: true
+  ansible.builtin.group:
+    name: teleport
+    state: present
+
+- name: Create Teleport user
+  become: true
+  user:
+    name: teleport
+    system: true
+    group: teleport
+    shell: /sbin/nologin
+
+- name: Create a directory on destination server to download Teleport Install script
+  become: true
+  file:
+    path: /home/teleport/teleport_script
+    state: directory
+    owner: teleport
+    group: teleport
+    mode: 0755
+
+- name: Check if Teleport Installation Script is already downloaded
+  become: true
+  stat:
+    path:  /home/teleport/teleport_script/install_teleport.sh
+  register: teleport_script
+
+- name: Download Teleport Installation Script
+  become: true
+  get_url:
+    url: https://goteleport.com/static/install.sh
+    dest:  /home/teleport/teleport_script/install_teleport.sh
+    owner: teleport
+    group: teleport
+    mode: 0755
+  when: not teleport_script.stat.exists
+
+- name: Run Teleport Installation Script
+  become: true
+#  become_user: teleport
+  command: /home/teleport/teleport_script/install_teleport.sh 14.2.0
+  when: not teleport_script.stat.exists
+
+- name: Send teleport config file from Ansible host to destination
+  become: true
+  copy:
+    src: /home/ansible/ansible/roles/teleport_servers/files/teleport-config.yaml
+    dest: /etc/teleport.yaml
+    owner: root
+    group: root
+    mode: 0644
+  when: not teleport_script.stat.exists
