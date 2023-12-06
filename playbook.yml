@@ -1,3 +1,0 @@
-- hosts: teleport_servers
-  roles:
-    - teleport_servers
